@@ -24,6 +24,6 @@ class DeleteTemporaryFile implements ShouldQueue
 
     public function handle()
     {
-        @unlink($this->tempPath);
+        unlink($this->tempPath);
     }
 }
