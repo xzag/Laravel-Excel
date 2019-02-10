@@ -15,6 +15,7 @@ use Maatwebsite\Excel\Jobs\AppendQueryToSheet;
 use Maatwebsite\Excel\Concerns\WithMultipleSheets;
 use Maatwebsite\Excel\Concerns\WithCustomChunkSize;
 use Maatwebsite\Excel\Concerns\WithCustomQuerySize;
+use Maatwebsite\Excel\Jobs\DeleteTemporaryFile;
 
 class QueuedWriter
 {
@@ -29,12 +30,18 @@ class QueuedWriter
     protected $chunkSize;
 
     /**
+     * @var bool
+     */
+    protected $deleteTempFile;
+
+    /**
      * @param Writer $writer
      */
     public function __construct(Writer $writer)
     {
         $this->writer    = $writer;
         $this->chunkSize = config('excel.exports.chunk_size', 1000);
+        $this->deleteTempFile = config('excel.exports.delete_temp_file', false);
     }
 
     /**
@@ -52,6 +59,10 @@ class QueuedWriter
         $jobs = $this->buildExportJobs($export, $tempFile, $writerType);
 
         $jobs->push(new StoreQueuedExport($tempFile, $filePath, $disk));
+
+        if ($this->deleteTempFile) {
+            $jobs->push(new DeleteTemporaryFile($tempFile));
+        }
 
         return QueueExport::withChain($jobs->toArray())->dispatch($export, $tempFile, $writerType);
     }
